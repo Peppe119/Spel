@@ -1,3 +1,4 @@
+[hidden]{display:none!important}
 /* Layout: civic utility tool. Filter column + result list, lake-blue accent, readable type for stressed readers. */
 :root{
   --bg:#f2f5f6; --surface:#ffffff; --ink:#132029; --muted:#55666f; --line:#d5dee2;
@@ -86,3 +87,7 @@ th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mut
 .lang-note{font-size:.85rem;color:var(--muted);margin:0 0 12px}
 @media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--accent)}}
 .results{min-width:0}
+.top-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.install{font:inherit;font-size:.9rem;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
+.install-hint{margin:12px 0 0;background:var(--accent-soft);border-radius:10px;padding:10px 14px}
+@media (display-mode:standalone){.wrap{padding-top:max(20px,env(safe-area-inset-top,0px))}}

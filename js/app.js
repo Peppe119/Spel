@@ -53,7 +53,7 @@ function setLang(l){
   $("t-tag").textContent=t.tag;$("t-sos-h").textContent=t.sosH;$("t-sos").textContent=t.sos;
   $("tabs").innerHTML=["find","whys","tests","src"].map((v,i)=>`<button role="tab" data-view="${v}" aria-selected="${view===v}">${t.tabs[i]}</button>`).join("");
   $("l-need").textContent=t.need;$("l-meal").textContent=t.meal;$("l-area").textContent=t.area;$("l-day").textContent=t.day;
-  $("l-open").textContent=t.open;$("l-who").textContent=t.who;$("l-walk").textContent=t.walk;$("l-pc").textContent=t.pc;$("h-pc").textContent=t.pcH;$("reset").textContent=t.reset;
+  $("l-open").textContent=t.open;$("l-who").textContent=t.who;$("l-walk").textContent=t.walk;$("l-pc").textContent=t.pc;$("h-pc").textContent=t.pcH;$("reset").textContent=t.reset;$("install").textContent="⤓ "+t.install;$("install-hint").textContent=t.iosHint;
   fillOptions();renderList();
 }
 let view="find";
@@ -135,5 +135,20 @@ $("v-src").innerHTML=`
 <p>Each test scenario sets the same filters a real person would choose. It counts as correct when the expected service appears in the results. The filter code is the same code the directory runs.</p>
 <h2>Left out on purpose</h2>
 <p>Wheelchair access, halal or vegetarian food, and whether a place asks for ID were not stated in the sources, so the directory does not filter on them yet. Adding them means asking each organisation directly. Le CARÉ's winter weekend meal and Caritas épiceries are mentioned in the sources without exact days or a Geneva address, so they are noted but not scheduled.</p>`;
+
+/* ---------- App: installera och offline ---------- */
+let installPrompt=null;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+addEventListener("beforeinstallprompt",e=>{e.preventDefault();installPrompt=e;$("install").hidden=false});
+addEventListener("appinstalled",()=>{installPrompt=null;$("install").hidden=true;$("install-hint").hidden=true});
+if(isIOS&&!standalone())$("install").hidden=false;
+$("install").onclick=async()=>{
+  if(installPrompt){installPrompt.prompt();await installPrompt.userChoice;installPrompt=null;$("install").hidden=true}
+  else $("install-hint").hidden=!$("install-hint").hidden;
+};
+if("serviceWorker" in navigator&&/^https?:$/.test(location.protocol)){
+  addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+}
 
 setLang(lang);

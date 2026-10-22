@@ -11,6 +11,20 @@ npm start          # http://localhost:8000
 npm test           # kör de 10 testscenarierna (Node)
 ```
 
+## Som app i mobilen
+
+Sidan är en installerbar webbapp (PWA). Den öppnas i helskärm med egen ikon och fungerar utan internet när den har öppnats en gång.
+
+- **Android och Chrome:** tryck på knappen **⤓ Installera** högst upp, eller välj "Installera app" i webbläsarens meny.
+- **iPhone:** öppna sidan i Safari, tryck på Dela och välj "Lägg till på hemskärmen".
+
+Appen måste ligga på en https-adress för att kunna installeras. Med det inbyggda GitHub Pages-flödet (`.github/workflows/pages.yml`) gör ni så här:
+
+1. Gå till repots **Settings → Pages** och välj **Source: GitHub Actions**.
+2. Merga koden till `main`. Appen publiceras då automatiskt på `https://<användare>.github.io/Spel/`.
+
+När data eller kod ändras ska ni höja `VERSION` i `sw.js`, så att alla som har installerat appen får den nya versionen.
+
 ## Funktioner
 
 - **5 språk:** franska, engelska, arabiska (höger till vänster), ukrainska och spanska.
@@ -44,5 +58,7 @@ Rullstolsanpassning, halal och vegetariskt, ID-krav, närhet till kollektivtrafi
 | `js/scenarios.js` | De 10 testscenarierna |
 | `js/app.js` | Gränssnitt, flikar, 5 Whys och källor |
 | `tests/run-scenarios.js` | Kör scenarierna i Node |
+| `manifest.webmanifest`, `sw.js`, `icons/` | Det som gör sidan till en app: namn, ikon och offlinestöd |
+| `.github/workflows/pages.yml` | Publicerar på GitHub Pages vid push till `main` |
 
 Kontrollera gärna några öppettider mot källorna innan ni presenterar, eftersom de kan ändras. Allt kontrollerades senast 22.10.2026.

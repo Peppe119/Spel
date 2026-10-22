@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Geneva Help Finder</title>
 <meta name="description" content="Gratis mat, dusch, kläder, vård och nattlogi i Genève – på fem språk.">
+<meta name="theme-color" content="#0a5f7a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Help Finder">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
 <link rel="stylesheet" href="css/style.css">
@@ -16,8 +24,12 @@
       <h1 id="t-title">Geneva Help Finder</h1>
       <p class="tag" id="t-tag"></p>
     </div>
-    <div class="langs" id="langs" role="group" aria-label="Language"></div>
+    <div class="top-actions">
+      <div class="langs" id="langs" role="group" aria-label="Language"></div>
+      <button type="button" class="install" id="install" hidden></button>
+    </div>
   </header>
+  <p class="install-hint" id="install-hint" hidden></p>
   <p class="sos"><strong id="t-sos-h"></strong><span id="t-sos"></span><span class="num">0800 22 22 10</span><span class="num">· 144 · 117</span></p>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
