@@ -1,0 +1,16 @@
+# Lägger upp telefonlinjens server på Render (render.com → New → Blueprint).
+services:
+  - type: web
+    name: geneva-help-line
+    runtime: node
+    plan: free
+    buildCommand: cd phone && npm ci
+    startCommand: node phone/src/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: PUBLIC_URL
+        sync: false
