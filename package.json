@@ -1,0 +1,10 @@
+{
+  "name": "geneva-help-finder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Flerspråkig hjälpguide för Genève: mat, dusch, kläder, vård och nattlogi.",
+  "scripts": {
+    "test": "node tests/run-scenarios.js",
+    "start": "python3 -m http.server 8000"
+  }
+}

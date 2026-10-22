@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="fr" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Geneva Help Finder</title>
+<meta name="description" content="Gratis mat, dusch, kläder, vård och nattlogi i Genève – på fem språk.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 id="t-title">Geneva Help Finder</h1>
+      <p class="tag" id="t-tag"></p>
+    </div>
+    <div class="langs" id="langs" role="group" aria-label="Language"></div>
+  </header>
+  <p class="sos"><strong id="t-sos-h"></strong><span id="t-sos"></span><span class="num">0800 22 22 10</span><span class="num">· 144 · 117</span></p>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <section id="v-find" class="find">
+    <form class="filters" id="filters" onsubmit="return false">
+      <div class="field"><span class="lbl" id="l-need"></span><div class="chips" id="f-need"></div></div>
+      <div class="field" id="meal-wrap"><label for="f-meal" id="l-meal"></label><select id="f-meal"></select></div>
+      <div class="field"><label for="f-area" id="l-area"></label><select id="f-area"></select></div>
+      <div class="field"><label for="f-day" id="l-day"></label><select id="f-day"></select></div>
+      <label class="check"><input type="checkbox" id="f-open"><span id="l-open"></span></label>
+      <div class="field"><label for="f-who" id="l-who"></label><select id="f-who"></select></div>
+      <label class="check"><input type="checkbox" id="f-walk"><span id="l-walk"></span></label>
+      <div class="field"><label for="f-pc" id="l-pc"></label><input type="text" id="f-pc" inputmode="numeric" maxlength="4" placeholder="1203"><p class="hint" id="h-pc"></p></div>
+      <button type="button" class="reset" id="reset"></button>
+    </form>
+    <div class="results">
+      <p class="count" id="count" aria-live="polite"></p>
+      <div class="list" id="list"></div>
+    </div>
+  </section>
+
+  <section id="v-whys" class="prose" hidden></section>
+  <section id="v-tests" hidden></section>
+  <section id="v-src" class="prose" hidden></section>
+</div>
+
+<script src="js/data.js"></script>
+<script src="js/i18n.js"></script>
+<script src="js/search.js"></script>
+<script src="js/scenarios.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
