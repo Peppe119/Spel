@@ -8,7 +8,7 @@ Sidan är ren HTML, CSS och JS och behöver inte byggas. Öppna `index.html` dir
 
 ```sh
 npm start          # http://localhost:8000
-npm test           # kör de 10 testscenarierna (Node)
+npm test           # kontrollerar alla språk och kör de 10 testscenarierna (Node)
 ```
 
 ## Som app i mobilen
@@ -27,7 +27,7 @@ När data eller kod ändras ska ni höja `VERSION` i `sw.js`, så att alla som h
 
 ## Funktioner
 
-- **5 språk:** franska, engelska, arabiska (höger till vänster), ukrainska och spanska.
+- **12 språk:** franska, engelska, tyska, italienska, portugisiska, spanska, albanska, turkiska, ryska, ukrainska, arabiska och persiska. Arabiska och persiska läses från höger till vänster. Sidan väljer webbläsarens språk automatiskt.
 - **Filter:**
   - typ av hjälp (måltid, matkasse, dusch, tvätt, kläder, vård, nattlogi, rådgivning)
   - vilken måltid
@@ -53,11 +53,12 @@ Rullstolsanpassning, halal och vegetariskt, ID-krav, närhet till kollektivtrafi
 | `index.html` | Sidans struktur |
 | `css/style.css` | Utseende med ljust och mörkt läge |
 | `js/data.js` | Tjänster, öppettider och källor. Uppdatera här. |
-| `js/i18n.js` | Översättningar |
+| `js/i18n.js` | Översättningar (12 språk) |
 | `js/search.js` | Filterlogik som delas av sidan och testerna |
 | `js/scenarios.js` | De 10 testscenarierna |
 | `js/app.js` | Gränssnitt, flikar, 5 Whys och källor |
 | `tests/run-scenarios.js` | Kör scenarierna i Node |
+| `tests/check-i18n.js` | Kontrollerar att inget språk saknar text |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Det som gör sidan till en app: namn, ikon och offlinestöd |
 | `.github/workflows/pages.yml` | Publicerar på GitHub Pages vid push till `main` |
 

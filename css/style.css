@@ -15,8 +15,8 @@
   --bg:#0e1619; --surface:#162227; --ink:#e4edf0; --muted:#97aab2; --line:#2a3a41;
   --accent:#5cb8d6; --accent-ink:#071419; --accent-soft:#16323c;
   --open:#6fd59a; --open-soft:#163527; --warn:#f0c16a; --warn-soft:#3a2d12; --stop:#f19a93; --stop-soft:#3b1d1b; color-scheme:dark}
-html[lang="uk"]{--font-body:"Noto Sans",system-ui,sans-serif}
-html[lang="ar"]{--font-body:"Noto Sans Arabic","Noto Sans",system-ui,sans-serif}
+html[lang="uk"],html[lang="ru"]{--font-body:"Noto Sans",system-ui,sans-serif}
+html[lang="ar"],html[lang="fa"]{--font-body:"Noto Sans Arabic","Noto Sans",system-ui,sans-serif}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
 .wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
@@ -28,7 +28,7 @@ h1{font-size:1.75rem;line-height:1.15;margin:0;text-wrap:balance}
 .langs button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .sos{margin:16px 0 0;display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;background:var(--warn-soft);color:var(--ink);border-radius:10px;padding:12px 16px}
 .sos strong{color:var(--warn)}
-.num{font-family:var(--font-mono);font-variant-numeric:tabular-nums;user-select:all}
+.num{direction:ltr;unicode-bidi:isolate;font-family:var(--font-mono);font-variant-numeric:tabular-nums;user-select:all}
 nav.tabs{display:flex;gap:4px;margin:20px 0 16px;overflow-x:auto;border-bottom:1px solid var(--line)}
 nav.tabs button{font:inherit;font-weight:700;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:10px 14px;cursor:pointer;white-space:nowrap}
 nav.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--accent)}
@@ -39,7 +39,7 @@ button:focus-visible,select:focus-visible,input:focus-visible,a:focus-visible{ou
 @media (max-width:820px){.filters{position:static}}
 .field{display:grid;gap:6px}
 .field>label,.field>.lbl{font-size:.8rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
-html[lang="ar"] .field>label,html[lang="ar"] .field>.lbl{letter-spacing:0}
+html[lang="ar"] .field>label,html[lang="ar"] .field>.lbl,html[lang="fa"] .field>label,html[lang="fa"] .field>.lbl{letter-spacing:0}
 select,input[type=text]{font:inherit;width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink)}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
 .chips button{font:inherit;font-size:.92rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:8px;padding:6px 10px;cursor:pointer}
@@ -91,3 +91,6 @@ th{font-size:.8rem;text-transform:uppercase;letter-spacing:.04em;color:var(--mut
 .install{font:inherit;font-size:.9rem;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:999px;padding:7px 14px;cursor:pointer}
 .install-hint{margin:12px 0 0;background:var(--accent-soft);border-radius:10px;padding:10px 14px}
 @media (display-mode:standalone){.wrap{padding-top:max(20px,env(safe-area-inset-top,0px))}}
+.langs{align-items:center;gap:8px;font-size:1.1rem}
+.langs select{width:auto;min-width:10em;font-size:.95rem;padding:7px 10px;border-radius:999px;background:var(--surface)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}

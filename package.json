@@ -4,7 +4,7 @@
   "private": true,
   "description": "Flerspråkig hjälpguide för Genève: mat, dusch, kläder, vård och nattlogi.",
   "scripts": {
-    "test": "node tests/run-scenarios.js",
+    "test": "node tests/check-i18n.js && node tests/run-scenarios.js",
     "start": "python3 -m http.server 8000"
   }
 }

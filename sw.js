@@ -1,6 +1,6 @@
 // Service worker: gör appen installerbar och användbar utan internet.
 // Höj VERSION när data eller kod ändras så att alla får den nya versionen.
-const VERSION = "ghf-v2";
+const VERSION = "ghf-v3";
 const SHELL = [
   "./", "index.html", "manifest.webmanifest", "css/style.css",
   "js/data.js", "js/i18n.js", "js/search.js", "js/scenarios.js", "js/app.js",

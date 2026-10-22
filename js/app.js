@@ -1,4 +1,6 @@
-let lang="fr";try{const s=localStorage.getItem("ghf-lang");if(s&&T[s])lang=s}catch(e){}
+let lang="fr";
+{const nav=(navigator.languages||[navigator.language||""]).map(x=>String(x).slice(0,2).toLowerCase()).find(x=>T[x]);if(nav)lang=nav}
+try{const s=localStorage.getItem("ghf-lang");if(s&&T[s])lang=s}catch(e){}
 const st={need:"any",meal:"any",area:"any",day:String(new Date().getDay()),open:false,who:"any",walk:false,pc:""};
 const $=id=>document.getElementById(id);
 function isOpenNow(s){const d=new Date(),m=d.getHours()*60+d.getMinutes();return s.sch&&s.sch.some(e=>e.d.includes(d.getDay())&&m>=toMin(e.t[0])&&m<toMin(e.t[1])&&!e.n)}
@@ -48,8 +50,8 @@ function fillOptions(){
 }
 function setLang(l){
   lang=l;try{localStorage.setItem("ghf-lang",l)}catch(e){}
-  const t=T[l];document.documentElement.lang=l;document.documentElement.dir=l==="ar"?"rtl":"ltr";
-  $("langs").innerHTML=LANGS.map(x=>`<button type="button" lang="${x}" data-lang="${x}" aria-pressed="${x===l}">${T[x].name}</button>`).join("");
+  const t=T[l];document.documentElement.lang=l;document.documentElement.dir=RTL.includes(l)?"rtl":"ltr";
+  $("lang").innerHTML=LANGS.map(x=>`<option value="${x}" lang="${x}">${T[x].name}</option>`).join("");$("lang").value=l;
   $("t-tag").textContent=t.tag;$("t-sos-h").textContent=t.sosH;$("t-sos").textContent=t.sos;
   $("tabs").innerHTML=["find","whys","tests","src"].map((v,i)=>`<button role="tab" data-view="${v}" aria-selected="${view===v}">${t.tabs[i]}</button>`).join("");
   $("l-need").textContent=t.need;$("l-meal").textContent=t.meal;$("l-area").textContent=t.area;$("l-day").textContent=t.day;
@@ -68,6 +70,7 @@ document.addEventListener("click",e=>{
   else if(b.id==="reset"){Object.assign(st,{need:"any",meal:"any",area:"any",day:String(new Date().getDay()),open:false,who:"any",walk:false,pc:""});$("f-open").checked=false;$("f-walk").checked=false;$("f-pc").value="";fillOptions();renderList()}
   else if(b.id==="runtests")runTests();
 });
+$("lang").onchange=e=>setLang(e.target.value);
 $("f-meal").onchange=e=>{st.meal=e.target.value;renderList()};
 $("f-area").onchange=e=>{st.area=e.target.value;renderList()};
 $("f-day").onchange=e=>{st.day=e.target.value;renderList()};
@@ -92,7 +95,7 @@ function runTests(){
       <div class="res">Expected: <strong>${expNames.map(s=>esc(s.name)).join(" or ")}</strong> · Directory returned ${r.length} place(s), first: ${esc(top)}</div>
       <div class="src">Source: ${srcs} · checked ${CHECKED}</div></div>`});
   $("v-tests").innerHTML=`<div class="score"><span class="big">${pass}/10</span><span>correct referrals. Each scenario runs the same filter code the directory uses.</span><button class="run" id="runtests" type="button">Run again</button></div>
-   <p class="lang-note">Jury view in English. The directory itself works in French, English, Arabic, Ukrainian and Spanish.</p><div class="list">${rows.join("")}</div>`;
+   <p class="lang-note">Jury view in English. The directory itself works in 12 languages: French, English, German, Italian, Portuguese, Spanish, Albanian, Turkish, Russian, Ukrainian, Arabic and Persian.</p><div class="list">${rows.join("")}</div>`;
 }
 
 /* ---------- 5 Whys & Sources (jury-facing, English) ---------- */
@@ -112,7 +115,7 @@ $("v-whys").innerHTML=`
 <h2>Four branches</h2>
 <div class="tbl"><table><thead><tr><th>Branch</th><th>Root cause</th><th>Feature that answers it</th></tr></thead><tbody>
 <tr><td>Scattered information</td><td>Nobody owns or funds one shared, up-to-date source</td><td>All places in one list, each with source link and date</td></tr>
-<tr><td>Language</td><td>The system assumes people read French</td><td>Five languages in one tap, Arabic right-to-left</td></tr>
+<tr><td>Language</td><td>The system assumes people read French</td><td>12 languages in one menu, Arabic and Persian right-to-left, browser language picked automatically</td></tr>
 <tr><td>Complicated conditions</td><td>Rules are never turned into simple yes/no questions</td><td>Filters: who you are, walk-in only, postal code, day</td></tr>
 <tr><td>Shame and trust</td><td>People don't know what is asked of them at the door</td><td>Clear badges: free, just walk in, ticket on site, referral needed</td></tr>
 </tbody></table></div>
