@@ -1,8 +1,13 @@
-/* Betasida för telefonlinjen: samma hjärna (js/helpline.js) som den riktiga linjen,
- * men man skriver istället för att prata och webbläsaren läser upp svaret.
- * Claude nås via sidans "sample"-förmåga; omdömen sparas i sidans databas ("db"). */
+/* Betasida för telefonlinjen, med samma hjärna (js/helpline.js) som den riktiga linjen.
+ * Två lägen:
+ * - Inne i Claude: man skriver, Claude nås via sidans "sample"-förmåga och omdömen
+ *   sparas i sidans databas ("db"). Mikrofonen är spärrad där.
+ * - Som vanlig webbsida (röstbeta): man pratar via mikrofonen och samtalet körs av
+ *   samma CallSession som telefonservern (phone/src/call-session.js), med teamets API-nyckel. */
 (() => {
 const H = HELPLINE;
+const IN_CLAUDE = !!window.claude?.use;
+document.body.classList.add(IN_CLAUDE ? "mode-claude" : "mode-web");
 const $ = id => document.getElementById(id);
 const RTL = ["ar", "fa"];
 const RULES = H.SYSTEM_PROMPT +
@@ -18,7 +23,7 @@ const EXAMPLES = [
   { lang: "uk", text: "У мене немає медичного страхування, а мені потрібен лікар." },
 ];
 
-const st = { inCall: false, lang: H.DEFAULT_LANG, turns: [], busy: null, voice: true, transfer: false, started: 0 };
+const st = { inCall: false, lang: H.DEFAULT_LANG, turns: [], busy: null, voice: true, handsFree: true, transfer: false, started: 0 };
 let sample = null, db = null, uid = null, mine = [], saving = Promise.resolve(), timerId = 0;
 
 const use = name => (window.claude?.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null));
@@ -40,24 +45,28 @@ function voiceFor(loc) {
 // så texten läses mening för mening. Ljud som startas direkt efter cancel()
 // kan tappas, så då väntar vi ett ögonblick.
 let cancelledAt = 0, heardSound = false, soundCheck = 0;
-function say(text, loc = locale()) {
-  if (!st.voice || !("speechSynthesis" in window)) return;
+function say(text, loc = locale(), onDone) {
+  const done = () => { if (onDone) setTimeout(onDone, 0); };
+  if (!st.voice || !("speechSynthesis" in window)) return done();
   const clean = text.replace(/[*_#`>]/g, "").trim();
-  if (!clean) return;
+  if (!clean) return done();
   const v = voiceFor(loc);
   const parts = clean.split(/(?<=[.!?؟…])\s+/).filter(Boolean);
   const speakAll = () => {
     try {
       speechSynthesis.resume();
-      for (const part of parts) {
+      parts.forEach((part, i) => {
         const u = new SpeechSynthesisUtterance(part);
         u.lang = loc;
         if (v) u.voice = v;
         u.onstart = () => { heardSound = true; };
-        u.onerror = e => { if (!["interrupted", "canceled"].includes(e.error)) soundProblem(e.error); };
+        u.onerror = e => {
+          if (!["interrupted", "canceled"].includes(e.error)) { soundProblem(e.error); if (i === parts.length - 1) done(); }
+        };
+        if (i === parts.length - 1) u.onend = done;
         speechSynthesis.speak(u);
-      }
-    } catch { soundProblem("blocked"); }
+      });
+    } catch { soundProblem("blocked"); done(); }
   };
   if (Date.now() - cancelledAt < 150) setTimeout(speakAll, 150);
   else speakAll();
@@ -72,7 +81,8 @@ function soundProblem(why) {
   if (soundWarned) return;
   soundWarned = true;
   sys(`No sound (${why}). Check that the volume is up and that your phone is not on silent. ` +
-    "On iPhone, flip the silent switch off. If it still stays quiet, open the page on claude.ai in Chrome or Safari.");
+    "On iPhone, flip the silent switch off. If it still stays quiet, " +
+    (IN_CLAUDE ? "open the page on claude.ai in Chrome or Safari." : "try Chrome, Edge or Safari."));
 }
 function voiceNote() {
   const n = $("voicenote");
@@ -140,12 +150,15 @@ function startCall() {
   tick();
   timerId = setInterval(tick, 1000);
   bubble("bot", H.WELCOME, "fr");
-  say(H.WELCOME, "fr-FR");
-  $("q").focus();
+  say(H.WELCOME, "fr-FR", () => { if (!IN_CLAUDE) listenIfHandsFree(); });
+  if (IN_CLAUDE || !SR) $("q").focus();
 }
 
 function endCall(note = "Call ended") {
   st.busy?.abort();
+  stopListening();
+  web.session?.stop();
+  web.session = null;
   hush();
   st.inCall = false;
   clearInterval(timerId);
@@ -161,13 +174,20 @@ function pressKey(k) {
   const code = H.langByKey(k);
   if (!code) return;
   st.busy?.abort();
+  stopListening();
   setLang(code);
   sys(`Key ${k} → ${langName(code)}`);
+  if (!IN_CLAUDE && web.session) {
+    web.question = null;
+    web.out = null;
+    web.session.chooseLanguage(code); // läser upp introt via samma väg som svaren
+    return;
+  }
   const intro = H.LANGUAGES[code].intro;
   bubble("bot", intro, code);
   st.turns.push({ role: "user", content: `(The caller pressed ${k} on the keypad and chose ${H.LANGUAGES[code].name}.)` });
   st.turns.push({ role: "assistant", content: intro });
-  say(intro);
+  say(intro, locale(), () => { if (!IN_CLAUDE) listenIfHandsFree(); });
 }
 
 function pageTools(found, answerEl) {
@@ -222,6 +242,7 @@ const ERRORS = {
 async function ask(text) {
   text = text.trim();
   if (!st.inCall || !text) return;
+  if (!IN_CLAUDE) return askWeb(text);
   if (!sample) {
     sys("Connecting to Claude…");
     await samplePromise;
@@ -295,6 +316,157 @@ async function ask(text) {
   }
 }
 
+/* ---------- Röstbeta: samma CallSession som telefonservern ---------- */
+const WEB_RULES = H.SYSTEM_PROMPT +
+  "\n\nThis is a beta test of the phone line in a web page. The caller speaks or types, " +
+  "and the page reads your answer aloud. transfer_call is only simulated in this test.";
+const web = { key: "", model: "claude-opus-5-5", Anthropic: null, CallSession: null, session: null,
+  out: null, spoken: 0, question: null, found: new Set(), failed: false, transfer: false, slow: 0 };
+
+async function loadWebModules() {
+  if (web.CallSession) return;
+  const [sdk, cs] = await Promise.all([import("./vendor/anthropic-sdk.mjs"), import("../phone/src/call-session.js")]);
+  web.Anthropic = sdk.default;
+  web.CallSession = cs.CallSession;
+}
+const webClient = () => new web.Anthropic({ apiKey: web.key, dangerouslyAllowBrowser: true });
+
+// Hjärnan från js/helpline.js, men find_help och get_place noterar vilka ställen som nämns.
+const webBrain = {
+  ...H,
+  findHelp: (input, now) => {
+    const r = H.findHelp(input, now);
+    [...r.places, ...(r.other_days || [])].forEach(p => web.found.add(p.id));
+    return r;
+  },
+  getPlace: (input, now) => { web.found.add(input.id); return H.getPlace(input, now); },
+};
+
+async function ensureSession() {
+  if (web.session) return web.session;
+  if (!web.key) return null;
+  await loadWebModules();
+  web.session = new web.CallSession({
+    brain: webBrain, client: webClient(), model: web.model, effort: "low", system: WEB_RULES, lang: st.lang,
+    send: onSessionMessage, log: onSessionLog,
+  });
+  return web.session;
+}
+
+function onSessionMessage(msg) {
+  if (msg.type === "language") {
+    const code = H.LANG_CODES.find(c => H.LANGUAGES[c].locale === msg.ttsLanguage);
+    if (code && code !== st.lang) { setLang(code); sys(`Language → ${langName(code)}`); }
+  } else if (msg.type === "end") {
+    web.transfer = true;
+  } else if (msg.type === "text") {
+    if (!web.out) { web.out = bubble("bot", "", st.lang); web.spoken = 0; }
+    const out = web.out;
+    if (out.classList.contains("thinking")) { out.classList.remove("thinking"); out.textContent = ""; out.lang = st.lang; }
+    out.textContent += msg.token;
+    out.scrollIntoView({ block: "end" });
+    const rest = out.textContent.slice(web.spoken);
+    const piece = msg.last ? rest : rest.slice(0, sentenceEnd(rest));
+    web.spoken += piece.length;
+    if (msg.last) finishWebAnswer(piece);
+    else say(piece);
+  }
+}
+
+function finishWebAnswer(lastPiece) {
+  clearTimeout(web.slow);
+  const out = web.out, question = web.question, failed = web.failed;
+  web.out = null;
+  web.question = null;
+  web.failed = false;
+  if (question && !failed && out?.textContent) {
+    rateControls(out, { question, answer: out.textContent, lang: st.lang, places: [...web.found] });
+  }
+  say(lastPiece, locale(), () => {
+    if (web.transfer) { web.transfer = false; endCall("Transferred to the shelter line (simulated)"); }
+    else listenIfHandsFree();
+  });
+}
+
+function onSessionLog(kind, a, b) {
+  if (kind === "tool" && a === "find_help" && web.out) {
+    let input = {};
+    try { input = JSON.parse(b); } catch { /* visa ändå */ }
+    web.out.before(Object.assign(document.createElement("div"), {
+      className: "msg sys",
+      textContent: "🔎 " + Object.entries(input).map(([k, v]) => `${k}: ${v}`).join(" · "),
+    }));
+  } else if (kind === "claude error") {
+    web.failed = true;
+    const err = a || {};
+    const why = err.status === 401 ? "The API key was not accepted. Check it under Connect to Claude."
+      : err.status === 429 ? "Too many questions at once, or the key has reached its limit. Wait a minute."
+      : err.status === 400 ? `Claude rejected the request: ${err.message}`
+      : !err.status ? `Could not reach Claude (${err.message || "network error"}). Check the connection.`
+      : `Claude error ${err.status}: ${err.message}`;
+    sys(why);
+    console.error("claude error", err);
+  }
+}
+
+async function askWeb(text) {
+  stopListening();
+  hush();
+  const session = await ensureSession().catch(err => { sys(`Could not start: ${err.message}`); return null; });
+  if (!session) {
+    sys("Add your team's API key under “Connect to Claude” first.");
+    $("apikey").focus();
+    return;
+  }
+  bubble("you", text, st.lang);
+  web.question = text;
+  web.found = new Set();
+  web.failed = false;
+  web.out = bubble("bot", "Thinking…", "en");
+  web.out.classList.add("thinking");
+  web.spoken = 0;
+  clearTimeout(web.slow);
+  const out = web.out;
+  web.slow = setTimeout(() => { if (out.classList.contains("thinking")) out.textContent = "Still working…"; }, 12000);
+  await session.handleUserText(text);
+}
+
+// Avbryter rösten och ett svar som håller på att skrivas, som när man pratar i mun på någon.
+function interruptAnswer() {
+  hush();
+  if (IN_CLAUDE || !web.session) return;
+  const partial = web.out;
+  web.session.interrupt();
+  if (partial) {
+    clearTimeout(web.slow);
+    if (partial.classList.contains("thinking")) partial.remove();
+    web.out = null;
+    web.question = null;
+  }
+}
+
+async function connectKey() {
+  const key = $("apikey").value.trim();
+  web.model = $("model").value;
+  if (!key) { $("keystatus").textContent = "Paste an API key first."; return; }
+  $("keystatus").textContent = "Checking…";
+  try {
+    await loadWebModules();
+    web.key = key;
+    await webClient().models.retrieve(web.model);
+    web.session?.stop();
+    web.session = null;
+    $("keystatus").textContent = "Connected ✓ Press the green button and talk.";
+    try {
+      if ($("remember").checked) { localStorage.setItem("ghl-key", key); localStorage.setItem("ghl-model", web.model); }
+      else { localStorage.removeItem("ghl-key"); }
+    } catch { /* bara för den här gången */ }
+  } catch (err) {
+    web.key = "";
+    $("keystatus").textContent = err?.status === 401 ? "That key was not accepted." : `Could not connect: ${err?.message || err}`;
+  }
+}
+
 /* ---------- Omdömen ---------- */
 function rateControls(after, entry) {
   const box = document.createElement("div");
@@ -326,6 +498,14 @@ function save(box, entry) {
     at: new Date().toISOString(),
   };
   const note = box.querySelector(".saved") || box.appendChild(Object.assign(document.createElement("span"), { className: "saved" }));
+  if (!IN_CLAUDE) {
+    mine = [...mine, full].slice(-100);
+    try { localStorage.setItem("ghl-feedback", JSON.stringify(mine)); } catch { /* bara i minnet */ }
+    note.textContent = "Saved on this device. Thank you!";
+    box.querySelectorAll("button, textarea").forEach(x => { x.disabled = true; });
+    renderMine();
+    return;
+  }
   if (!db || !uid) {
     note.textContent = "Not saved: open the page in Claude, signed in, with Contributor access.";
     return;
@@ -381,35 +561,66 @@ async function loadResults() {
   }
 }
 
-/* ---------- Mikrofon (om webbläsaren tillåter den här) ---------- */
-function setupMic() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return;
-  const btn = $("mic");
-  btn.hidden = false;
-  let rec = null;
-  btn.onclick = () => {
-    if (!st.inCall) return;
-    if (rec) { rec.stop(); return; }
-    hush();
-    rec = new SR();
-    rec.lang = locale();
-    rec.interimResults = true;
-    btn.setAttribute("aria-pressed", "true");
-    rec.onresult = ev => {
-      const r = [...ev.results].map(x => x[0].transcript).join(" ");
-      $("q").value = r;
-      if (ev.results[ev.results.length - 1].isFinal) { const v = $("q").value; $("q").value = ""; ask(v); }
-    };
-    rec.onerror = ev => {
-      if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
-        btn.hidden = true;
-        sys("The microphone is blocked on pages shown inside Claude. On a mobile, tap the microphone on your keyboard to speak instead of typing.");
-      }
-    };
-    rec.onend = () => { rec = null; btn.setAttribute("aria-pressed", "false"); };
-    try { rec.start(); } catch { rec = null; btn.hidden = true; }
+/* ---------- Mikrofon ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+
+function startListening() {
+  if (!SR || !st.inCall || rec) return;
+  interruptAnswer();
+  let heard = "";
+  rec = new SR();
+  rec.lang = locale();
+  rec.interimResults = true;
+  rec.continuous = false;
+  document.querySelector(".phone").classList.add("listening");
+  $("mic").setAttribute("aria-pressed", "true");
+  setStatus("Listening…", true);
+  rec.onresult = ev => {
+    const r = [...ev.results].map(x => x[0].transcript).join(" ");
+    $("q").value = r;
+    if (ev.results[ev.results.length - 1].isFinal) heard = r;
   };
+  rec.onerror = ev => {
+    if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
+      $("mic").hidden = true;
+      $("handsfree").hidden = true;
+      sys(IN_CLAUDE
+        ? "The microphone is blocked on pages shown inside Claude. On a mobile, tap the microphone on your keyboard to speak instead of typing."
+        : "The browser did not allow the microphone. Allow it in the address bar, or type instead.");
+    }
+  };
+  rec.onend = () => {
+    rec = null;
+    document.querySelector(".phone").classList.remove("listening");
+    $("mic").setAttribute("aria-pressed", "false");
+    if (st.inCall) setStatus("Connected", true);
+    const v = heard.trim();
+    if (v) { $("q").value = ""; ask(v); }
+  };
+  try { rec.start(); } catch { rec = null; }
+}
+function stopListening() { try { rec?.stop(); } catch { /* redan stoppad */ } }
+function listenIfHandsFree() { if (st.inCall && st.handsFree && !IN_CLAUDE) startListening(); }
+
+function setupMic() {
+  if (!SR) {
+    if (!IN_CLAUDE) {
+      $("notice").innerHTML = "<strong>This browser cannot listen.</strong> Use Chrome, Edge or Safari to talk to the line, or type your questions.";
+      $("notice").hidden = false;
+    }
+    return;
+  }
+  $("mic").hidden = false;
+  $("mic").onclick = () => (rec ? stopListening() : startListening());
+  if (!IN_CLAUDE) {
+    $("handsfree").hidden = false;
+    $("handsfree").onclick = () => {
+      st.handsFree = !st.handsFree;
+      $("handsfree").setAttribute("aria-pressed", String(st.handsFree));
+      $("handsfree").textContent = st.handsFree ? "🎙 Hands-free" : "🎙 Tap to talk";
+    };
+  }
 }
 
 /* ---------- Start ---------- */
@@ -426,7 +637,7 @@ document.addEventListener("keydown", ev => {
   if (st.inCall && ev.target === document.body && /^[0-9*#]$/.test(ev.key)) pressKey(ev.key);
 });
 $("ask").onsubmit = ev => { ev.preventDefault(); const v = $("q").value; $("q").value = ""; ask(v); };
-$("q").oninput = () => { if ($("q").value) hush(); };
+$("q").oninput = () => { if ($("q").value && !rec) hush(); };
 $("voice").onclick = () => {
   st.voice = !st.voice;
   if (!st.voice) hush();
@@ -457,7 +668,20 @@ $("soundtest").onclick = () => {
 setupMic();
 voiceNote();
 
-(async () => {
+if (!IN_CLAUDE) {
+  try {
+    $("apikey").value = localStorage.getItem("ghl-key") || "";
+    $("model").value = localStorage.getItem("ghl-model") || "claude-opus-5-5";
+    $("remember").checked = !!$("apikey").value;
+    mine = JSON.parse(localStorage.getItem("ghl-feedback") || "[]");
+  } catch { /* inget sparat */ }
+  renderMine();
+  $("savekey").onclick = connectKey;
+  $("apikey").onkeydown = ev => { if (ev.key === "Enter") connectKey(); };
+  if ($("apikey").value) connectKey();
+}
+
+if (IN_CLAUDE) (async () => {
   await samplePromise;
   if (sample) {
     const lim = await sample.limits().catch(() => null);

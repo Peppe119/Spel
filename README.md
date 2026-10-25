@@ -6,9 +6,21 @@ En flerspråkig hjälpguide för Genève, gjord för ett hackathon. Den visar gr
 
 Många som behöver hjälpen har ingen smartphone. Därför finns också en telefonlinje i `phone/`. Man ringer ett nummer och en AI-röst svarar på frågor på alla 12 språk, med samma data som webbsidan. Läs mer i [`phone/README.md`](phone/README.md).
 
-## Beta: testa telefonlinjen i webbläsaren
+## Beta: prata med telefonlinjen i webbläsaren
 
-I `beta/` finns en testversion av telefonlinjen som körs i Claude. Man ringer upp, väljer språk på knappsatsen, skriver sin fråga och hör svaret uppläst. Testarna betygsätter varje svar, och ägaren ser allas resultat. Betan använder samma hjärna (`js/helpline.js`) som den riktiga telefonlinjen. Bygg den med `node beta/build.mjs`.
+`beta/` är en testversion av telefonlinjen. Man ringer upp, väljer språk på knappsatsen, frågar och hör svaret uppläst. Testarna betygsätter varje svar. Betan finns i två lägen:
+
+- **Röstbeta, som vanlig webbsida:** öppna `beta/index.html` via en webbserver (se nedan) eller via GitHub Pages. Där kan man prata via mikrofonen. Efter varje svar lyssnar sidan igen, som i ett riktigt samtal. Samtalet körs av samma `CallSession` som telefonservern (`phone/src/call-session.js`). Det enda som behövs är en API-nyckel från console.anthropic.com, som man klistrar in på sidan. Fungerar i Chrome, Edge och Safari.
+- **Inne i Claude:** `node beta/build.mjs` bygger en version där man skriver istället för att prata, eftersom Claude spärrar mikrofonen. Omdömena sparas och ägaren ser allas resultat.
+
+Prova röstbetan lokalt:
+
+```sh
+python3 -m http.server 8000    # i repots rot
+# öppna http://localhost:8000/beta/ i Chrome, Edge eller Safari
+```
+
+Anthropics SDK ligger förpaketerad i `beta/vendor/` (byggs med `cd phone && npm run build:sdk`).
 
 ## Kör
 

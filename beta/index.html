@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Geneva Help Line Beta</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Noto+Sans:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<link rel="stylesheet" href="beta.css">
+</head>
+<body>
+<!-- PAGE -->
+<div class="wrap">
+  <header>
+    <span class="eyebrow">Beta · test version</span>
+    <h1>Geneva Help Line</h1>
+    <p class="lede">Try the free help line before it gets a real phone number. Call, pick a language on the keypad, and ask the way you would on the phone. The answers come from the same directory and the same rules as the real line.</p>
+  </header>
+  <p class="notice" id="notice" hidden></p>
+
+  <div class="grid">
+    <section class="phone" aria-label="Phone">
+      <div class="bar" id="bar"><span><i class="dot"></i><span id="status">Ready to call</span></span><span class="num" id="timer">0800 · Help</span></div>
+      <div class="screen" id="screen" aria-live="polite">
+        <p class="idle" id="idle"><strong>Press the green button to call</strong>You will hear a greeting in French and English, then a language menu.</p>
+      </div>
+      <form class="ask" id="ask" autocomplete="off">
+        <input id="q" type="text" placeholder="Call first, then type here" disabled aria-label="What you would say">
+        <button type="button" class="icon" id="mic" hidden aria-label="Speak">🎤</button>
+        <button type="submit" id="send" disabled>Send</button>
+      </form>
+      <div class="keys" id="keys" role="group" aria-label="Keypad"></div>
+      <div class="calls">
+        <button type="button" class="round go" id="call" aria-label="Call">📞</button>
+        <button type="button" class="round stop" id="hang" aria-label="Hang up" disabled>✕</button>
+      </div>
+      <div class="toggles">
+        <button type="button" class="icon" id="voice" aria-pressed="true" aria-label="Read answers aloud">🔊 Voice on</button>
+        <button type="button" class="icon web-only" id="handsfree" aria-pressed="true" hidden>🎙 Hands-free</button>
+      </div>
+      <p class="small"><span id="voicenote">Answers are read aloud with this device's voices.</span> <button type="button" class="linkish" id="soundtest">Test sound</button></p>
+    </section>
+
+    <div class="guide">
+      <section class="card web-only" id="keycard">
+        <h2>Connect to Claude</h2>
+        <p class="muted">Outside Claude, this page talks to Claude with your team's API key from console.anthropic.com. The key stays in this browser and is only sent to api.anthropic.com. Use a key with a spending limit, and don't save it on a shared computer.</p>
+        <label class="field">API key<input type="password" id="apikey" placeholder="sk-ant-…" autocomplete="off" spellcheck="false"></label>
+        <label class="field">Model<select id="model">
+          <option value="claude-opus-5-5">Claude Opus 5.5 – best answers</option>
+          <option value="claude-haiku-5-5">Claude Haiku 5.5 – fastest</option>
+        </select></label>
+        <label class="check"><input type="checkbox" id="remember"> Remember on this device</label>
+        <div class="row"><button type="button" class="btn" id="savekey">Connect</button><span class="muted" id="keystatus">Not connected</span></div>
+      </section>
+
+      <section class="card">
+        <h2>How to test</h2>
+        <ol class="steps">
+          <li>Press the green button. Turn your sound on.</li>
+          <li>Choose a language on the keypad, or just write in French.</li>
+          <li class="claude-only">Write what you would say on the phone. On a mobile, the microphone on your keyboard lets you speak instead.</li>
+          <li class="web-only">Tap 🎤 and talk. After each answer the line listens again, like a real call. You can also type.</li>
+          <li>After each answer, tell us if it sent you to the right place.</li>
+        </ol>
+        <p class="muted"><span class="claude-only">Answers use your own Claude account, so the first question asks for permission.</span> Opening hours checked <span id="checked"></span>.</p>
+      </section>
+
+      <section class="card">
+        <h2>Try one of these</h2>
+        <div class="chips" id="examples"></div>
+      </section>
+
+      <section class="card">
+        <h2>Your feedback</h2>
+        <p class="muted" id="mine">Rate answers on the phone and they are saved here for the team.</p>
+      </section>
+
+      <section class="card" id="results" hidden>
+        <h2>All testers' results</h2>
+        <div class="stats" id="stats"></div>
+        <div class="fb" id="fb"></div>
+        <button type="button" class="btn" id="reload">Refresh results</button>
+      </section>
+    </div>
+  </div>
+</div>
+<!-- /PAGE -->
+<script src="../js/data.js"></script>
+<script src="../js/i18n.js"></script>
+<script src="../js/search.js"></script>
+<script src="../js/helpline.js"></script>
+<script src="beta.js"></script>
+</body>
+</html>
