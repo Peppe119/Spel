@@ -6,6 +6,10 @@ En flerspråkig hjälpguide för Genève, gjord för ett hackathon. Den visar gr
 
 Många som behöver hjälpen har ingen smartphone. Därför finns också en telefonlinje i `phone/`. Man ringer ett nummer och en AI-röst svarar på frågor på alla 12 språk, med samma data som webbsidan. Läs mer i [`phone/README.md`](phone/README.md).
 
+## Beta: testa telefonlinjen i webbläsaren
+
+I `beta/` finns en testversion av telefonlinjen som körs i Claude. Man ringer upp, väljer språk på knappsatsen, skriver sin fråga och hör svaret uppläst. Testarna betygsätter varje svar, och ägaren ser allas resultat. Betan använder samma hjärna (`js/helpline.js`) som den riktiga telefonlinjen. Bygg den med `node beta/build.mjs`.
+
 ## Kör
 
 Sidan är ren HTML, CSS och JS och behöver inte byggas. Öppna `index.html` direkt, eller starta en lokal server:
@@ -64,7 +68,9 @@ Rullstolsanpassning, halal och vegetariskt, ID-krav, närhet till kollektivtrafi
 | `tests/run-scenarios.js` | Kör scenarierna i Node |
 | `tests/check-i18n.js` | Kontrollerar att inget språk saknar text |
 | `manifest.webmanifest`, `sw.js`, `icons/` | Det som gör sidan till en app: namn, ikon och offlinestöd |
+| `js/helpline.js` | Telefonlinjens hjärna: språk, instruktioner och sökverktyg (delas av `phone/` och `beta/`) |
 | `phone/` | Telefonlinjen med AI-röst (Twilio + Claude) |
+| `beta/` | Betasida för att testa telefonlinjen utan telefonnummer |
 | `render.yaml` | Lägger upp telefonlinjens server på Render |
 | `.github/workflows/pages.yml` | Publicerar på GitHub Pages vid push till `main` |
 
