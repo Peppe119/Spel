@@ -1,0 +1,24 @@
+{
+  "name": "geneva-help-line",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Telefonlinje där en AI-röst svarar på frågor om gratis hjälp i Genève, på 12 språk.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "chat": "node src/simulate.js",
+    "test": "node --test test/*.test.js",
+    "build:sdk": "esbuild src/browser-sdk.mjs --bundle --format=esm --platform=browser --minify --legal-comments=eof --outfile=../beta/vendor/anthropic-sdk.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.1.0",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.10"
+  }
+}
