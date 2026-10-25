@@ -3,7 +3,7 @@
 //   POST /voice      Twilio anropar den här när någon ringer. Svarar med TwiML
 //                    som kopplar samtalet till ConversationRelay (tal till text och text till tal).
 //   WS   /relay      ConversationRelay skickar det ringaren säger hit och läser upp svaren.
-//   POST /call-ended När boten avslutar samtalet. Kopplar vidare till nattlogi-linjen vid behov.
+//   POST /call-ended När samtalet är slut: lägger på.
 //   GET  /health     Enkel hälsokontroll.
 import http from "node:http";
 import crypto from "node:crypto";
@@ -15,7 +15,6 @@ import { LANGUAGES, LANG_CODES, DEFAULT_LANG, WELCOME, langByKey } from "./langu
 const PORT = Number(process.env.PORT || 8080);
 const PUBLIC_URL = (process.env.PUBLIC_URL || `http://localhost:${PORT}`).replace(/\/$/, "");
 const AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN || "";
-const SHELTER_LINE = process.env.SHELTER_LINE || "+41800222210";
 const TTS_PROVIDER = process.env.TTS_PROVIDER || "";
 const STT_PROVIDER = process.env.STT_PROVIDER || "";
 
@@ -37,12 +36,7 @@ ${langs}
 </Response>`;
 }
 
-export function callEndedTwiml(handoffData) {
-  let data = {};
-  try { data = JSON.parse(handoffData || "{}"); } catch { /* inget att koppla vidare */ }
-  if (data.reason === "transfer") {
-    return `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Dial>${xml(SHELTER_LINE)}</Dial>\n</Response>`;
-  }
+export function callEndedTwiml() {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<Response>\n  <Hangup/>\n</Response>`;
 }
 
@@ -85,7 +79,7 @@ const server = http.createServer(async (req, res) => {
         res.writeHead(403).end();
         return;
       }
-      const body = path === "/voice" ? voiceTwiml() : callEndedTwiml(params.HandoffData);
+      const body = path === "/voice" ? voiceTwiml() : callEndedTwiml();
       if (path === "/voice") log("incoming call", params.CallSid || "", "from", mask(params.From));
       res.writeHead(200, { "content-type": "text/xml" }).end(body);
       return;

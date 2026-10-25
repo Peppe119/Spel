@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { WebSocket } from "ws";
-import { findHelp, getPlace, validate } from "../src/tools.js";
+import { findHelp, getPlace, validate, TOOLS } from "../src/tools.js";
 import { CallSession, SYSTEM_PROMPT } from "../src/agent.js";
 import { LANGUAGES, LANG_CODES, WELCOME, langByKey } from "../src/languages.js";
 import { voiceTwiml, callEndedTwiml, twilioSignature, server } from "../src/server.js";
@@ -72,7 +72,7 @@ test("12 languages, one keypad key each, matching the website", () => {
   assert.equal(new Set(keys).size, 12);
   for (const c of LANG_CODES) {
     assert.equal(langByKey(LANGUAGES[c].key), c);
-    for (const f of ["intro", "error", "refusal", "transfer", "locale", "name"]) assert.ok(LANGUAGES[c][f], `${c}.${f}`);
+    for (const f of ["intro", "error", "refusal", "locale", "name"]) assert.ok(LANGUAGES[c][f], `${c}.${f}`);
   }
   assert.match(WELCOME, /English, 2\./);
 });
@@ -123,15 +123,19 @@ test("set_language from speech switches voice and recognition", async () => {
   assert.equal(t.s.lang, "uk");
 });
 
-test("transfer_call hands the call over after the last sentence", async () => {
-  const t = session([toolUse("transfer_call", { target: "shelter_line" }), say("Je vous transfère.")]);
-  await t.s.handleUserText("Oui, transférez-moi");
-  const end = t.sent.at(-1);
-  assert.equal(end.type, "end");
-  assert.equal(JSON.parse(end.handoffData).reason, "transfer");
-  assert.ok(t.s.ended);
-  assert.match(callEndedTwiml(end.handoffData), /<Dial>\+41800222210<\/Dial>/);
-  assert.match(callEndedTwiml(""), /<Hangup\/>/);
+test("the bot answers itself: no transfer tool, no referral to another line", async () => {
+  assert.deepEqual(TOOLS.map(t => t.name), ["find_help", "get_place", "set_language"]);
+  assert.match(SYSTEM_PROMPT, /never offer to transfer the call/);
+  assert.doesNotMatch(SYSTEM_PROMPT, /0800/);
+  for (const c of LANG_CODES) assert.doesNotMatch(LANGUAGES[c].error, /0800/, c);
+  const t = session([toolUse("find_help", { need: "sleep", day: "today", who: "man" }),
+    say("Le foyer d'urgence est gratuit, jusqu'à 30 jours, et les chiens peuvent être acceptés.")]);
+  await t.s.handleUserText("Je n'ai pas où dormir ce soir, j'ai un chien");
+  const result = JSON.parse(t.client.calls[1].messages.at(-1).content[0].content);
+  assert.equal(result.places[0].id, "shelter");
+  assert.ok(result.places[0].dogs);
+  assert.ok(!t.sent.some(m => m.type === "end"));
+  assert.match(callEndedTwiml(), /<Hangup\/>/);
 });
 
 test("refusal and API errors: caller hears a fallback line, history stays valid", async () => {
@@ -139,7 +143,7 @@ test("refusal and API errors: caller hears a fallback line, history stays valid"
   await t.s.handleUserText("x");
   assert.match(t.spoken(), /no puedo ayudar/);
   await t.s.handleUserText("y");
-  assert.match(t.spoken(), /0800 22 22 10/);
+  assert.match(t.spoken(), /problema técnico/);
   assert.equal(t.s.messages.length, 0);
 });
 

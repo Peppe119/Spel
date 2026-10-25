@@ -10,7 +10,6 @@ const session = new CallSession({
   send: msg => {
     if (msg.type === "text") process.stdout.write(msg.token + (msg.last ? "\n" : ""));
     else if (msg.type === "language") console.log(`\n[språk: ${msg.ttsLanguage}]`);
-    else if (msg.type === "end") console.log("\n[samtalet kopplas vidare till 0800 22 22 10]");
   },
   log: (...a) => console.log("  ·", ...a.map(String)),
 });
@@ -23,6 +22,5 @@ for (;;) {
   if (code) { console.log(`[knapp ${line} → ${LANGUAGES[code].name}]`); session.chooseLanguage(code); continue; }
   process.stdout.write("🔊 ");
   await session.handleUserText(line);
-  if (session.ended) break;
 }
 rl.close();

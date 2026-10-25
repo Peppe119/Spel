@@ -21,7 +21,7 @@ Rösten använder samma 18 ställen och samma filterkod som webbsidan (`../js/`)
    Man kan också byta språk mitt i samtalet genom att be om det, till exempel "Can you speak English?".
 3. Hen frågar med egna ord, till exempel "Var kan jag äta lunch idag nära Cornavin?" eller "Jag har ingenstans att sova i natt".
 4. Boten söker i registret och svarar kort: namn, adress och när stället är öppet. Den säger också om stället kräver biljett eller remiss, eller bara tar emot kvinnor eller familjer.
-5. Om någon behöver en säng i natt kan boten koppla samtalet vidare till stadens nattlogi-linje 0800 22 22 10. Vid fara eller akut sjukdom säger den åt personen att ringa 144 (ambulans) eller 117 (polis).
+5. Boten gör jobbet själv: den skickar inte vidare till någon annan linje. Behöver någon en säng i natt förklarar den hur nattlogit fungerar: att det är gratis, hur man får en plats, hur länge man får stanna och att hundar kan tas emot. Det enda undantaget är fara eller akut sjukdom. Då säger den åt personen att ringa 144 (ambulans) eller 117 (polis).
 
 Boten frågar aldrig efter namn, papper eller uppehållsstatus. Telefonnummer maskeras i loggarna.
 
@@ -36,14 +36,14 @@ Telefon ──► Twilio-nummer ──► POST /voice (TwiML)
                           server.js → agent.js → Claude (claude-opus-5-5)
                                                    │ verktyg
                                                    ▼
-                          tools.js: find_help, get_place, set_language, transfer_call
+                          tools.js: find_help, get_place, set_language
                                                    │
                                    ../js/data.js + ../js/search.js (samma som webbsidan)
 ```
 
 - `src/server.js` tar emot samtalet, skickar TwiML och håller WebSocket-kopplingen mot Twilio.
 - `src/agent.js` innehåller instruktionerna till Claude. Svaret strömmas ord för ord, så att rösten börjar prata direkt. Om den som ringer avbryter slutar rösten prata.
-- `src/tools.js` innehåller de fyra verktygen som Claude får använda.
+- `src/tools.js` innehåller de tre verktygen som Claude får använda: söka, visa ett ställe och byta språk.
 - `src/languages.js` innehåller de 12 språken, knapparna och de fasta fraserna, till exempel introt och felmeddelandet.
 
 ## Prova utan telefon
@@ -83,12 +83,10 @@ npm test    # 17 tester, körs utan nyckel och utan telefon
 | `TWILIO_AUTH_TOKEN` | Kontrollerar att anropen verkligen kommer från Twilio. Måste vara satt när servern är publik. |
 | `MODEL` | Claude-modell, standard `claude-opus-5-5`. `claude-haiku-5-5` svarar snabbare och billigare. |
 | `EFFORT` | `low` som standard, vilket ger snabba svar. |
-| `SHELTER_LINE` | Numret man kopplas vidare till, standard `+41800222210`. |
 | `TTS_PROVIDER`, `STT_PROVIDER` | Byter Twilios leverantör för talsyntes och taligenkänning, till exempel `Google` eller `ElevenLabs`. |
 
 ## Kontrollera innan ni går live
 
 - **Språkkoderna** i `src/languages.js` måste finnas hos Twilios leverantörer för tal. Albanska (`sq-AL`), arabiska (`ar-SA`) och persiska (`fa-IR`) är märkta `verify: true`, eftersom stödet varierar mellan leverantörerna. Ring och tryck på deras knappar. Om rösten saknas, byt leverantör med `TTS_PROVIDER` eller ändra koden.
-- **Vidarekopplingen** går till 0800 22 22 10. Fråga Ville de Genève om det går bra innan linjen används på riktigt.
 - **Nödnummer** (144, 117, 112) går inte att koppla via Twilio, så boten säger bara åt personen att ringa dem.
 - **Öppettiderna** kommer från `../js/data.js`. Uppdatera dem där, så ändras både webbsidan och telefonlinjen.
