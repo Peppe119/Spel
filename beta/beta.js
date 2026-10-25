@@ -22,6 +22,8 @@ const st = { inCall: false, lang: H.DEFAULT_LANG, turns: [], busy: null, voice: 
 let sample = null, db = null, uid = null, mine = [], saving = Promise.resolve(), timerId = 0;
 
 const use = name => (window.claude?.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null));
+// Hämta Claude direkt och för sig, så att en långsam databas aldrig håller tillbaka svaren.
+const samplePromise = use("sample").then(s => (sample = s));
 const langName = c => T[c].name;
 const locale = () => H.LANGUAGES[st.lang].locale;
 
@@ -194,8 +196,12 @@ async function ask(text) {
   text = text.trim();
   if (!st.inCall || !text) return;
   if (!sample) {
-    sys("Open this page in Claude to get answers. The keypad and greeting work without it.");
-    return;
+    sys("Connecting to Claude…");
+    await samplePromise;
+    if (!sample) {
+      sys("Claude is not available in this view, so the line cannot answer. Open the page on claude.ai in a web browser.");
+      return;
+    }
   }
   st.busy?.abort();
   hush();
@@ -206,8 +212,9 @@ async function ask(text) {
   const now = H.genevaNow();
   const L = H.LANGUAGES[st.lang];
   st.turns.push({ role: "user", content: `<call_context>Geneva time now: ${now.label}. Caller language: ${L.name} (${st.lang}).</call_context>\n${text}` });
-  const out = bubble("bot", "…", st.lang);
+  const out = bubble("bot", "Thinking… If Claude asks for permission, choose Allow.", "en");
   out.classList.add("thinking");
+  const slow = setTimeout(() => { if (out.classList.contains("thinking")) out.textContent = "Still working… The first answer can take up to a minute."; }, 15000);
   const found = new Set();
   let spoken = 0;
   const speakNew = (all, final) => {
@@ -224,6 +231,7 @@ async function ask(text) {
       tools: pageTools(found, out),
       onText: ({ text: so_far }) => {
         out.classList.remove("thinking");
+        out.lang = st.lang;
         out.textContent = so_far;
         out.scrollIntoView({ block: "end" });
         speakNew(so_far, false);
@@ -251,8 +259,11 @@ async function ask(text) {
     } else {
       out.textContent = (e.text ? e.text + "\n\n" : "") + L.error;
       say(L.error);
+      sys(`Technical detail for the team: ${e.code || "unknown"}${e.message ? " – " + e.message : ""}`);
+      console.error("sample failed", e);
     }
   } finally {
+    clearTimeout(slow);
     if (st.busy === ctl) st.busy = null;
   }
 }
@@ -412,8 +423,7 @@ setupMic();
 voiceNote();
 
 (async () => {
-  const [s, d, u] = await Promise.all([use("sample"), use("db"), use("user")]);
-  sample = s;
+  await samplePromise;
   if (sample) {
     const lim = await sample.limits().catch(() => null);
     if (lim && !lim.tools) {
@@ -424,6 +434,7 @@ voiceNote();
     $("notice").innerHTML = "<strong>Answers need Claude.</strong> Open this page on claude.ai to ask questions. The keypad, greeting and voice work here too.";
     $("notice").hidden = false;
   }
+  const [d, u] = await Promise.all([use("db"), use("user")]);
   db = d;
   uid = (await u?.id?.().catch(() => null)) || null;
   if (db && uid) {
