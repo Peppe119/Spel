@@ -72,6 +72,7 @@ h1{font-size:1.8rem;line-height:1.15;margin:0;text-wrap:balance}
 .round.stop{background:var(--stop)}
 .round:disabled{opacity:.35;cursor:not-allowed}
 .small{font-size:.8rem;color:var(--device-muted);text-align:center;margin:0}
+.linkish{font:inherit;background:none;border:0;padding:0;color:var(--device-ink);text-decoration:underline;cursor:pointer}
 button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
 /* Guide */
@@ -123,7 +124,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px soli
         <button type="button" class="icon" id="voice" aria-pressed="true" aria-label="Read answers aloud">🔊 Voice on</button>
         <button type="button" class="round stop" id="hang" aria-label="Hang up" disabled>✕</button>
       </div>
-      <p class="small" id="voicenote">Answers are read aloud with this device's voices.</p>
+      <p class="small"><span id="voicenote">Answers are read aloud with this device's voices.</span> <button type="button" class="linkish" id="soundtest">Test sound</button></p>
     </section>
 
     <div class="guide">

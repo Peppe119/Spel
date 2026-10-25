@@ -36,17 +36,44 @@ function voiceFor(loc) {
   return voices.find(v => v.lang.toLowerCase().replace("_", "-") === l) ||
     voices.find(v => v.lang.toLowerCase().startsWith(base));
 }
+// Chrome tystnar på uppläsningar längre än cirka 15 sekunder och fastnar sedan,
+// så texten läses mening för mening. Ljud som startas direkt efter cancel()
+// kan tappas, så då väntar vi ett ögonblick.
+let cancelledAt = 0, heardSound = false, soundCheck = 0;
 function say(text, loc = locale()) {
   if (!st.voice || !("speechSynthesis" in window)) return;
   const clean = text.replace(/[*_#`>]/g, "").trim();
   if (!clean) return;
-  const u = new SpeechSynthesisUtterance(clean);
-  u.lang = loc;
   const v = voiceFor(loc);
-  if (v) u.voice = v;
-  try { speechSynthesis.speak(u); } catch { /* tyst */ }
+  const parts = clean.split(/(?<=[.!?؟…])\s+/).filter(Boolean);
+  const speakAll = () => {
+    try {
+      speechSynthesis.resume();
+      for (const part of parts) {
+        const u = new SpeechSynthesisUtterance(part);
+        u.lang = loc;
+        if (v) u.voice = v;
+        u.onstart = () => { heardSound = true; };
+        u.onerror = e => { if (!["interrupted", "canceled"].includes(e.error)) soundProblem(e.error); };
+        speechSynthesis.speak(u);
+      }
+    } catch { soundProblem("blocked"); }
+  };
+  if (Date.now() - cancelledAt < 150) setTimeout(speakAll, 150);
+  else speakAll();
+  if (!heardSound) {
+    clearTimeout(soundCheck);
+    soundCheck = setTimeout(() => { if (st.voice && !heardSound) soundProblem("silent"); }, 4000);
+  }
 }
-const hush = () => { try { speechSynthesis.cancel(); } catch { /* tyst */ } };
+const hush = () => { cancelledAt = Date.now(); try { speechSynthesis.cancel(); } catch { /* tyst */ } };
+let soundWarned = false;
+function soundProblem(why) {
+  if (soundWarned) return;
+  soundWarned = true;
+  sys(`No sound (${why}). Check that the volume is up and that your phone is not on silent. ` +
+    "On iPhone, flip the silent switch off. If it still stays quiet, open the page on claude.ai in Chrome or Safari.");
+}
 function voiceNote() {
   const n = $("voicenote");
   if (!("speechSynthesis" in window)) n.textContent = "This browser cannot read aloud, so answers are shown as text.";
@@ -377,7 +404,7 @@ function setupMic() {
     rec.onerror = ev => {
       if (ev.error === "not-allowed" || ev.error === "service-not-allowed") {
         btn.hidden = true;
-        sys("The microphone is not available here. Use the microphone on your keyboard, or type.");
+        sys("The microphone is blocked on pages shown inside Claude. On a mobile, tap the microphone on your keyboard to speak instead of typing.");
       }
     };
     rec.onend = () => { rec = null; btn.setAttribute("aria-pressed", "false"); };
@@ -419,6 +446,14 @@ $("examples").onclick = ev => {
   ask(ex.text);
 };
 $("reload").onclick = loadResults;
+$("soundtest").onclick = () => {
+  hush();
+  soundWarned = false;
+  const was = st.voice;
+  st.voice = true;
+  say("Bonjour. Hello. Sound works.", "fr-FR");
+  st.voice = was;
+};
 setupMic();
 voiceNote();
 
