@@ -12,7 +12,7 @@ const $ = id => document.getElementById(id);
 const RTL = ["ar", "fa"];
 const RULES = H.SYSTEM_PROMPT +
   "\n\nThis is a beta test of the phone line in a web page. The caller types what they would say, " +
-  "and the page reads your answer aloud. transfer_call is only simulated in this test.";
+  "and the page reads your answer aloud.";
 
 const EXAMPLES = [
   { lang: "fr", text: "Je cherche à manger à midi près de la gare Cornavin." },
@@ -23,7 +23,7 @@ const EXAMPLES = [
   { lang: "uk", text: "У мене немає медичного страхування, а мені потрібен лікар." },
 ];
 
-const st = { inCall: false, lang: H.DEFAULT_LANG, turns: [], busy: null, voice: true, handsFree: true, transfer: false, started: 0 };
+const st = { inCall: false, lang: H.DEFAULT_LANG, turns: [], busy: null, voice: true, handsFree: true, started: 0 };
 let sample = null, db = null, uid = null, mine = [], saving = Promise.resolve(), timerId = 0;
 
 const use = name => (window.claude?.use ? window.claude.use(name).catch(() => null) : Promise.resolve(null));
@@ -216,9 +216,6 @@ function pageTools(found, answerEl) {
           setLang(input.language);
           sys(`Language → ${langName(input.language)}`);
           return { ok: true, now_speaking: H.LANGUAGES[input.language].name };
-        case "transfer_call":
-          st.transfer = true;
-          return { ok: true, info: "Simulated in this test. Tell the caller in one short sentence that you are transferring them to the shelter line." };
       }
     },
   }));
@@ -255,7 +252,6 @@ async function ask(text) {
   hush();
   const ctl = new AbortController();
   st.busy = ctl;
-  st.transfer = false;
   bubble("you", text, st.lang);
   const now = H.genevaNow();
   const L = H.LANGUAGES[st.lang];
@@ -289,7 +285,6 @@ async function ask(text) {
     speakNew(answer, true);
     st.turns.push({ role: "assistant", content: answer });
     rateControls(out, { question: text, answer, lang: st.lang, places: [...found] });
-    if (st.transfer) endCall("Transferred to the shelter line (simulated)");
   } catch (e) {
     out.classList.remove("thinking");
     if (e.code === "cancelled") {
@@ -319,9 +314,9 @@ async function ask(text) {
 /* ---------- Röstbeta: samma CallSession som telefonservern ---------- */
 const WEB_RULES = H.SYSTEM_PROMPT +
   "\n\nThis is a beta test of the phone line in a web page. The caller speaks or types, " +
-  "and the page reads your answer aloud. transfer_call is only simulated in this test.";
+  "and the page reads your answer aloud.";
 const web = { key: "", model: "claude-opus-5-5", Anthropic: null, CallSession: null, session: null,
-  out: null, spoken: 0, question: null, found: new Set(), failed: false, transfer: false, slow: 0 };
+  out: null, spoken: 0, question: null, found: new Set(), failed: false, slow: 0 };
 
 async function loadWebModules() {
   if (web.CallSession) return;
@@ -357,8 +352,6 @@ function onSessionMessage(msg) {
   if (msg.type === "language") {
     const code = H.LANG_CODES.find(c => H.LANGUAGES[c].locale === msg.ttsLanguage);
     if (code && code !== st.lang) { setLang(code); sys(`Language → ${langName(code)}`); }
-  } else if (msg.type === "end") {
-    web.transfer = true;
   } else if (msg.type === "text") {
     if (!web.out) { web.out = bubble("bot", "", st.lang); web.spoken = 0; }
     const out = web.out;
@@ -382,10 +375,7 @@ function finishWebAnswer(lastPiece) {
   if (question && !failed && out?.textContent) {
     rateControls(out, { question, answer: out.textContent, lang: st.lang, places: [...web.found] });
   }
-  say(lastPiece, locale(), () => {
-    if (web.transfer) { web.transfer = false; endCall("Transferred to the shelter line (simulated)"); }
-    else listenIfHandsFree();
-  });
+  say(lastPiece, locale(), listenIfHandsFree);
 }
 
 function onSessionLog(kind, a, b) {

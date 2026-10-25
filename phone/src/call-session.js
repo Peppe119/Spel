@@ -9,7 +9,7 @@ const MAX_TOOL_ROUNDS = 6;
 export class CallSession {
   /**
    * @param {object} opts
-   * @param {(msg: object) => void} opts.send  tar emot {type:"text"|"language"|"end", ...}
+   * @param {(msg: object) => void} opts.send  tar emot {type:"text"|"language", ...}
    * @param {object} opts.brain  TOOLS, validate, findHelp, getPlace, LANGUAGES, DEFAULT_LANG, SYSTEM_PROMPT, genevaNow
    * @param {object} [opts.client]  en Anthropic-klient
    * @param {() => object} [opts.makeClient]  skapar klienten första gången den behövs
@@ -29,8 +29,6 @@ export class CallSession {
     this.messages = [];
     this.turn = 0;
     this.stream = null;
-    this.pendingTransfer = false;
-    this.ended = false;
   }
 
   // Klienten skapas först när den behövs, så att knappsatsmenyn fungerar även utan nyckel.
@@ -78,7 +76,6 @@ export class CallSession {
   }
 
   async handleUserText(text) {
-    if (this.ended) return;
     this.stop();
     const turn = this.turn;
     const { LANGUAGES } = this.brain;
@@ -110,7 +107,6 @@ export class CallSession {
 
         if (message.stop_reason !== "tool_use" || !uses.length) {
           this.speak("", true);
-          if (this.pendingTransfer) this.transfer();
           return;
         }
 
@@ -176,14 +172,6 @@ export class CallSession {
       case "set_language":
         this.setLanguage(use.input.language);
         return result({ ok: true, now_speaking: LANGUAGES[use.input.language].name });
-      case "transfer_call":
-        this.pendingTransfer = true;
-        return result({ ok: true, info: "The call will be transferred to 0800 22 22 10 when you finish speaking. Say one short sentence telling the caller." });
     }
-  }
-
-  transfer() {
-    this.ended = true;
-    this.send({ type: "end", handoffData: JSON.stringify({ reason: "transfer", lang: this.lang }) });
   }
 }
